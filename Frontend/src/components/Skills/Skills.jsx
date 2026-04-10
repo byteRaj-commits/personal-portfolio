@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowUpRight, X } from "lucide-react";
 import "./Skills.css";
 
 const CATEGORY_ORDER = [
@@ -9,29 +10,53 @@ const CATEGORY_ORDER = [
   "database",
   "tools",
 ];
+
 const CATEGORY_META = {
   languages: { label: "Languages", icon: "{ }" },
-  frontend: { label: "Frontend", icon: "◈" },
-  backend: { label: "Backend", icon: "⚙" },
-  database: { label: "Database", icon: "▣" },
-  tools: { label: "Tools", icon: "⬡" },
-  other: { label: "Other", icon: "◉" },
+  frontend: { label: "Frontend", icon: "</>" },
+  backend: { label: "Backend", icon: "[ ]" },
+  database: { label: "Database", icon: "DB" },
+  tools: { label: "Tools", icon: "++" },
+  other: { label: "Other", icon: "*" },
+};
+
+const SKILL_ASSETS = {
+  c: "https://cdn.simpleicons.org/c/239120",
+  "c++": "https://cdn.simpleicons.org/cplusplus/00599C",
+  java: "https://cdn.simpleicons.org/openjdk/EA2D2E",
+  javascript: "https://cdn.simpleicons.org/javascript/F7DF1E",
+  html: "https://cdn.simpleicons.org/html5/E34F26",
+  css: "https://cdn.simpleicons.org/css/1572B6",
+  react: "https://cdn.simpleicons.org/react/61DAFB",
+  "node.js": "https://cdn.simpleicons.org/nodedotjs/5FA04E",
+  "express.js": "https://cdn.simpleicons.org/express/FFFFFF",
+  mongodb: "https://cdn.simpleicons.org/mongodb/47A248",
+  figma: "https://cdn.simpleicons.org/figma/F24E1E",
+  "git / github": "https://cdn.simpleicons.org/github/FFFFFF",
+  "ai prompting": "https://cdn.simpleicons.org/openai/FFFFFF",
 };
 
 export default function Skills() {
   const [grouped, setGrouped] = useState({});
+  const [projects, setProjects] = useState([]);
   const [active, setActive] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [activeSkill, setActiveSkill] = useState(null);
 
   useEffect(() => {
-    fetch("/api/v1/skills")
-      .then((r) => r.json())
-      .then((res) => {
+    Promise.all([
+      fetch("/api/v1/skills").then((r) => r.json()),
+      fetch("/api/v1/projects?limit=50").then((r) => r.json()),
+    ])
+      .then(([skillsRes, projectsRes]) => {
         const map = {};
-        (res.data || []).forEach((g) => {
+        (skillsRes.data || []).forEach((g) => {
           map[g._id] = g.skills;
         });
         setGrouped(map);
+
+        const projectData = projectsRes.data?.projects || projectsRes.data || [];
+        setProjects(Array.isArray(projectData) ? projectData : []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -48,6 +73,22 @@ export default function Skills() {
       category: cat,
     }))
   );
+
+  const skillsById = useMemo(
+    () => Object.fromEntries(marqueeSkills.map((skill) => [skill._id, skill])),
+    [marqueeSkills]
+  );
+
+  const selectedSkill = activeSkill ? skillsById[activeSkill] || null : null;
+
+  const relatedProjects = useMemo(() => {
+    if (!selectedSkill) return [];
+    return projects.filter((project) =>
+      (project.techStack || []).some(
+        (tech) => tech.toLowerCase() === selectedSkill.name.toLowerCase()
+      )
+    );
+  }, [projects, selectedSkill]);
 
   return (
     <section className="skills section" id="skills">
@@ -71,12 +112,15 @@ export default function Skills() {
             <div className="skills__marquee-fade skills__marquee-fade--right" />
             <div className="skills__marquee-track">
               {[...marqueeSkills, ...marqueeSkills].map((skill, index) => (
-                <div key={`${skill._id || skill.name}-${index}`} className="skills__marquee-chip">
-                  <span className="skills__marquee-icon">
-                    {skill.icon || CATEGORY_META[skill.category]?.icon || "◉"}
-                  </span>
+                <button
+                  key={`${skill._id || skill.name}-${index}`}
+                  className="skills__marquee-chip"
+                  onClick={() => skill._id && setActiveSkill(skill._id)}
+                  type="button"
+                >
+                  <SkillVisual skill={skill} category={skill.category} className="skills__marquee-icon" />
                   <span className="skills__marquee-name">{skill.name}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -119,15 +163,20 @@ export default function Skills() {
               >
                 <div className="skills__cat-head">
                   <span className="skills__cat-icon">
-                    {CATEGORY_META[cat]?.icon || "◉"}
+                    {CATEGORY_META[cat]?.icon || "*"}
                   </span>
                   <h3 className="skills__cat-name">
                     {CATEGORY_META[cat]?.label || cat}
                   </h3>
                 </div>
-                <div className="skills__list">
+                <div className="skills__list skills__list--cards">
                   {(grouped[cat] || []).map((s, si) => (
-                    <SkillBar key={s._id} skill={s} delay={si * 0.06} />
+                    <SkillCard
+                      key={s._id}
+                      skill={{ ...s, category: cat }}
+                      delay={si * 0.06}
+                      onOpen={() => setActiveSkill(s._id)}
+                    />
                   ))}
                 </div>
               </motion.div>
@@ -135,39 +184,123 @@ export default function Skills() {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedSkill ? (
+          <SkillModal
+            skill={selectedSkill}
+            projects={relatedProjects}
+            onClose={() => setActiveSkill(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }
 
-function SkillBar({ skill, delay }) {
-  const [filled, setFilled] = useState(false);
+function SkillCard({ skill, delay, onOpen }) {
   return (
     <motion.div
-      className="sbar"
+      className="skillcard"
       initial={{ opacity: 0, x: -20 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay }}
-      onViewportEnter={() => setTimeout(() => setFilled(true), 200)}
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
     >
-      <div className="sbar__top">
-        <span className="sbar__name">{skill.name}</span>
-        <span className="sbar__pct">{skill.proficiency}%</span>
+      <div className="skillcard__head">
+        <SkillVisual skill={skill} category={skill.category} className="skillcard__icon" />
+        <div>
+          <div className="skillcard__name">{skill.name}</div>
+          <div className="skillcard__meta">{CATEGORY_META[skill.category]?.label || skill.category}</div>
+        </div>
       </div>
-      <div className="sbar__track">
-        <motion.div
-          className="sbar__fill"
-          initial={{ width: 0 }}
-          animate={{ width: filled ? `${skill.proficiency}%` : 0 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-        />
-        <motion.div
-          className="sbar__glow"
-          initial={{ left: 0 }}
-          animate={{ left: filled ? `${skill.proficiency}%` : 0 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-        />
+      <div className="skillcard__foot">
+        <span className="skillcard__pct">{skill.proficiency}%</span>
+        <span className="skillcard__open">Tap to view</span>
       </div>
+    </motion.div>
+  );
+}
+
+function SkillVisual({ skill, category, className }) {
+  const src = skill.icon || SKILL_ASSETS[skill.name.toLowerCase()];
+
+  if (src && /^https?:\/\//.test(src)) {
+    return <img src={src} alt={skill.name} className={className} loading="lazy" />;
+  }
+
+  return <span className={className}>{src || CATEGORY_META[category]?.icon || "*"}</span>;
+}
+
+function SkillModal({ skill, projects, onClose }) {
+  return (
+    <motion.div
+      className="skills__modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="skills__modal"
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 18, scale: 0.96 }}
+        transition={{ duration: 0.22 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button className="skills__modal-close" onClick={onClose} type="button" aria-label="Close skill details">
+          <X size={18} />
+        </button>
+        <div className="skills__modal-head">
+          <SkillVisual skill={skill} category={skill.category} className="skills__modal-icon" />
+          <div>
+            <div className="skills__modal-kicker">{CATEGORY_META[skill.category]?.label || skill.category}</div>
+            <h3 className="skills__modal-title">{skill.name}</h3>
+          </div>
+        </div>
+
+        <div className="skills__modal-section">
+          <div className="skills__modal-row">
+            <span>Proficiency</span>
+            <strong>{skill.proficiency}%</strong>
+          </div>
+          <div className="skills__modal-track">
+            <span style={{ width: `${skill.proficiency}%` }} />
+          </div>
+        </div>
+
+        <div className="skills__modal-section">
+          <div className="skills__modal-subtitle">Used In Projects</div>
+          {projects.length ? (
+            <div className="skills__project-list">
+              {projects.map((project) => (
+                <a
+                  key={project._id}
+                  href={project.liveUrl || project.githubUrl || "#projects"}
+                  target={project.liveUrl || project.githubUrl ? "_blank" : undefined}
+                  rel={project.liveUrl || project.githubUrl ? "noreferrer" : undefined}
+                  className="skills__project-chip"
+                >
+                  <span>{project.title}</span>
+                  <ArrowUpRight size={14} />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="skills__modal-empty">No linked projects found yet for this stack.</p>
+          )}
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
