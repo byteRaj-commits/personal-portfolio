@@ -1,78 +1,110 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import api from '../../utils/api'
-import './Skills.css'
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import "./Skills.css";
 
-const CATEGORY_ORDER = ['languages', 'frontend', 'backend', 'database', 'tools']
-
+const CATEGORY_ORDER = [
+  "languages",
+  "frontend",
+  "backend",
+  "database",
+  "tools",
+];
 const CATEGORY_META = {
-  languages: { label: 'Languages',  emoji: '💻' },
-  frontend:  { label: 'Frontend',   emoji: '🎨' },
-  backend:   { label: 'Backend',    emoji: '⚙️' },
-  database:  { label: 'Database',   emoji: '🗄️' },
-  tools:     { label: 'Tools',      emoji: '🛠️' },
-  other:     { label: 'Other',      emoji: '📦' },
-}
+  languages: { label: "Languages", icon: "{ }" },
+  frontend: { label: "Frontend", icon: "◈" },
+  backend: { label: "Backend", icon: "⚙" },
+  database: { label: "Database", icon: "▣" },
+  tools: { label: "Tools", icon: "⬡" },
+  other: { label: "Other", icon: "◉" },
+};
 
 export default function Skills() {
-  const [grouped, setGrouped] = useState({})
-  const [loading, setLoading] = useState(true)
+  const [grouped, setGrouped] = useState({});
+  const [active, setActive] = useState("all");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/skills')
+    fetch("/api/v1/skills")
+      .then((r) => r.json())
       .then((res) => {
-        // API returns array of { _id: category, skills: [...] }
-        const data = res.data || []
-        const map = {}
-        data.forEach((g) => { map[g._id] = g.skills })
-        setGrouped(map)
+        const map = {};
+        (res.data || []).forEach((g) => {
+          map[g._id] = g.skills;
+        });
+        setGrouped(map);
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
-  const categories = [
+  const cats = [
     ...CATEGORY_ORDER.filter((c) => grouped[c]),
     ...Object.keys(grouped).filter((c) => !CATEGORY_ORDER.includes(c)),
-  ]
+  ];
+  const shown = active === "all" ? cats : cats.filter((c) => c === active);
 
   return (
     <section className="skills section" id="skills">
+      <div className="skills__bg-text">SKILLS</div>
       <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="skills__header"
         >
           <span className="section-tag">Expertise</span>
-          <h2 className="section-title">My <span>Skills</span></h2>
-          <p className="skills__sub">Technologies I work with daily to build great products</p>
+          <h2 className="section-title">
+            Tech <span>Stack</span>
+          </h2>
         </motion.div>
+
+        <div className="skills__tabs">
+          <button
+            className={`skills__tab ${active === "all" ? "skills__tab--active" : ""}`}
+            onClick={() => setActive("all")}
+          >
+            All
+          </button>
+          {cats.map((c) => (
+            <button
+              key={c}
+              className={`skills__tab ${active === c ? "skills__tab--active" : ""}`}
+              onClick={() => setActive(c)}
+            >
+              {CATEGORY_META[c]?.label || c}
+            </button>
+          ))}
+        </div>
 
         {loading ? (
           <div className="skills__loading">
-            {[1,2,3].map((i) => <div key={i} className="skills__skeleton" />)}
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="skills__skel" />
+            ))}
           </div>
         ) : (
-          <div className="skills__categories">
-            {categories.map((cat, ci) => (
+          <div className="skills__grid">
+            {shown.map((cat, ci) => (
               <motion.div
                 key={cat}
-                className="skills__category"
+                className="skills__cat"
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: ci * 0.1 }}
+                transition={{ duration: 0.5, delay: ci * 0.08 }}
               >
-                <div className="skills__cat-header">
-                  <span className="skills__cat-emoji">{CATEGORY_META[cat]?.emoji || '📦'}</span>
-                  <h3 className="skills__cat-title">{CATEGORY_META[cat]?.label || cat}</h3>
+                <div className="skills__cat-head">
+                  <span className="skills__cat-icon">
+                    {CATEGORY_META[cat]?.icon || "◉"}
+                  </span>
+                  <h3 className="skills__cat-name">
+                    {CATEGORY_META[cat]?.label || cat}
+                  </h3>
                 </div>
                 <div className="skills__list">
-                  {(grouped[cat] || []).map((skill, si) => (
-                    <SkillBar key={skill._id} skill={skill} delay={si * 0.05} />
+                  {(grouped[cat] || []).map((s, si) => (
+                    <SkillBar key={s._id} skill={s} delay={si * 0.06} />
                   ))}
                 </div>
               </motion.div>
@@ -81,33 +113,38 @@ export default function Skills() {
         )}
       </div>
     </section>
-  )
+  );
 }
 
 function SkillBar({ skill, delay }) {
-  const [filled, setFilled] = useState(false)
-
+  const [filled, setFilled] = useState(false);
   return (
     <motion.div
-      className="skill-bar"
+      className="sbar"
       initial={{ opacity: 0, x: -20 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, delay }}
       onViewportEnter={() => setTimeout(() => setFilled(true), 200)}
     >
-      <div className="skill-bar__top">
-        <span className="skill-bar__name">{skill.name}</span>
-        <span className="skill-bar__pct">{skill.proficiency}%</span>
+      <div className="sbar__top">
+        <span className="sbar__name">{skill.name}</span>
+        <span className="sbar__pct">{skill.proficiency}%</span>
       </div>
-      <div className="skill-bar__track">
+      <div className="sbar__track">
         <motion.div
-          className="skill-bar__fill"
+          className="sbar__fill"
           initial={{ width: 0 }}
           animate={{ width: filled ? `${skill.proficiency}%` : 0 }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+        />
+        <motion.div
+          className="sbar__glow"
+          initial={{ left: 0 }}
+          animate={{ left: filled ? `${skill.proficiency}%` : 0 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
         />
       </div>
     </motion.div>
-  )
+  );
 }
