@@ -14,11 +14,12 @@ import toast from "react-hot-toast";
 import "./Contact.css";
 
 const TYPES = [
-  { v: "project", l: "🚀 Project" },
-  { v: "job", l: "💼 Job" },
-  { v: "collaboration", l: "🤝 Collab" },
-  { v: "general", l: "💬 General" },
+  { v: "project", l: "Project" },
+  { v: "job", l: "Job" },
+  { v: "collaboration", l: "Collab" },
+  { v: "general", l: "General" },
 ];
+
 const INIT = { name: "", email: "", subject: "", message: "", type: "general" };
 
 export default function Contact() {
@@ -33,20 +34,28 @@ export default function Contact() {
       toast.error("Fill all fields");
       return;
     }
+
     setL(true);
+
     try {
       const res = await fetch("/api/v1/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error();
+
+      const payload = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(payload?.message || "Failed to send message");
+      }
+
       setSent(true);
-      toast.success("Message sent! I'll reply soon 🎉");
+      toast.success(payload?.message || "Message sent! I'll reply soon.");
       setForm(INIT);
       setTimeout(() => setSent(false), 4000);
-    } catch {
-      toast.error("Failed. Try again.");
+    } catch (error) {
+      toast.error(error.message || "Failed. Try again.");
     } finally {
       setL(false);
     }
@@ -92,7 +101,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <div className="contact__info-label">Location</div>
-                  <div className="contact__info-val">India 🇮🇳</div>
+                  <div className="contact__info-val">India</div>
                 </div>
               </div>
               <div className="contact__info-item">

@@ -3,6 +3,7 @@ import { uploadOnCloudinary, deleteFromCloudinary } from "../config/cloudinary.j
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import cloudinary from "../config/cloudinary.js";
 
 // ─── Get Profile (Public) ────────────────────────────
 export const getProfile = asyncHandler(async (req, res) => {
@@ -10,7 +11,13 @@ export const getProfile = asyncHandler(async (req, res) => {
   if (!profile) {
     throw new ApiError(404, "Profile not found");
   }
-  res.status(200).json(new ApiResponse(200, profile, "Profile fetched successfully"));
+
+  const profileObject = profile.toObject();
+
+  if (profileObject?.resume?.publicId) {
+    profileObject.resume.downloadUrl = "/api/v1/profile/resume";
+  }
+  res.status(200).json(new ApiResponse(200, profileObject, "Profile fetched successfully"));
 });
 
 // ─── Create or Update Profile (Admin) ───────────────
@@ -77,4 +84,23 @@ export const deleteResume = asyncHandler(async (req, res) => {
   await Profile.findOneAndUpdate({}, { $set: { resume: { url: "", publicId: "" } } });
 
   res.status(200).json(new ApiResponse(200, {}, "Resume deleted successfully"));
+});
+
+export const getResumeDownloadUrl = asyncHandler(async (req, res) => {
+  const profile = await Profile.findOne({}, "resume");
+
+  if (!profile?.resume?.publicId) {
+    throw new ApiError(404, "No resume found");
+  }
+
+  const signedUrl = cloudinary.url(profile.resume.publicId, {
+    resource_type: "image",
+    type: "upload",
+    sign_url: true,
+    secure: true,
+    attachment: true,
+    format: "pdf",
+  });
+
+  res.redirect(signedUrl);
 });

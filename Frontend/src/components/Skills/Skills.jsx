@@ -42,6 +42,12 @@ export default function Skills() {
     ...Object.keys(grouped).filter((c) => !CATEGORY_ORDER.includes(c)),
   ];
   const shown = active === "all" ? cats : cats.filter((c) => c === active);
+  const marqueeSkills = shown.flatMap((cat) =>
+    (grouped[cat] || []).map((skill) => ({
+      ...skill,
+      category: cat,
+    }))
+  );
 
   return (
     <section className="skills section" id="skills">
@@ -58,6 +64,23 @@ export default function Skills() {
             Tech <span>Stack</span>
           </h2>
         </motion.div>
+
+        {!loading && marqueeSkills.length > 0 ? (
+          <div className="skills__marquee-wrap">
+            <div className="skills__marquee-fade skills__marquee-fade--left" />
+            <div className="skills__marquee-fade skills__marquee-fade--right" />
+            <div className="skills__marquee-track">
+              {[...marqueeSkills, ...marqueeSkills].map((skill, index) => (
+                <div key={`${skill._id || skill.name}-${index}`} className="skills__marquee-chip">
+                  <span className="skills__marquee-icon">
+                    {skill.icon || CATEGORY_META[skill.category]?.icon || "◉"}
+                  </span>
+                  <span className="skills__marquee-name">{skill.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <div className="skills__tabs">
           <button

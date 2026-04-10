@@ -22,6 +22,72 @@
   gap: 8px;
   margin: 40px 0 48px;
 }
+.skills__marquee-wrap {
+  position: relative;
+  overflow: hidden;
+  margin-top: 34px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    radial-gradient(circle at top left, rgba(0, 212, 255, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(20, 20, 40, 0.92), rgba(10, 10, 20, 0.95));
+  padding: 18px 0;
+}
+.skills__marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  animation: skillsMarquee 28s linear infinite;
+  padding: 0 18px;
+}
+.skills__marquee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}
+.skills__marquee-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(124, 92, 252, 0.14);
+  color: var(--accent-3);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  border: 1px solid rgba(124, 92, 252, 0.18);
+}
+.skills__marquee-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: 0.01em;
+}
+.skills__marquee-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 90px;
+  z-index: 1;
+  pointer-events: none;
+}
+.skills__marquee-fade--left {
+  left: 0;
+  background: linear-gradient(90deg, var(--bg-3), transparent);
+}
+.skills__marquee-fade--right {
+  right: 0;
+  background: linear-gradient(270deg, var(--bg-3), transparent);
+}
 .skills__tab {
   padding: 8px 20px;
   border-radius: 100px;
@@ -137,4 +203,17 @@
   border-radius: 50%;
   background: var(--accent-2);
   box-shadow: 0 0 10px var(--accent-2);
+}
+@keyframes skillsMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skills__marquee-track {
+    animation: none;
+  }
 }

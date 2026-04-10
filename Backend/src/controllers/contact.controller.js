@@ -2,6 +2,7 @@ import Contact from "../models/Contact.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { sendContactEmails } from "../utils/mailer.js";
 
 // Simple email regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,14 +30,24 @@ export const submitContact = asyncHandler(async (req, res) => {
     throw new ApiError(429, "Too many messages. Please try again later.");
   }
 
-  const contact = await Contact.create({
+  const contactData = {
     name: name.trim(),
     email: email.trim().toLowerCase(),
     subject: subject.trim(),
     message: message.trim(),
     type: type || "general",
     ipAddress: req.ip,
+  };
+
+  await sendContactEmails({
+    name: contactData.name,
+    email: contactData.email,
+    subject: contactData.subject,
+    message: contactData.message,
+    type: contactData.type,
   });
+
+  const contact = await Contact.create(contactData);
 
   res.status(201).json(
     new ApiResponse(201, { id: contact._id }, "Message sent successfully! I'll get back to you soon.")

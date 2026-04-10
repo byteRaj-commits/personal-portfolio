@@ -2,6 +2,8 @@ import Stats from "../models/Stats.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { syncLeetcodeStats } from "../utils/leetcodeSync.js";
+import { syncGfgStats } from "../utils/gfgSync.js";
 
 // ─── Get All Platform Stats (Public) ─────────────────
 export const getAllStats = asyncHandler(async (req, res) => {
@@ -11,6 +13,18 @@ export const getAllStats = asyncHandler(async (req, res) => {
   stats.forEach((s) => {
     formatted[s.platform] = s[s.platform];
   });
+
+  try {
+    formatted.leetcode = await syncLeetcodeStats();
+  } catch (error) {
+    console.error("LeetCode sync failed:", error.message);
+  }
+
+  try {
+    formatted.geeksforgeeks = await syncGfgStats();
+  } catch (error) {
+    console.error("GFG sync failed:", error.message);
+  }
 
   res.status(200).json(new ApiResponse(200, formatted, "Stats fetched successfully"));
 });
@@ -26,6 +40,28 @@ export const getStatsByPlatform = asyncHandler(async (req, res) => {
 
   const stats = await Stats.findOne({ platform });
   if (!stats) throw new ApiError(404, `Stats for ${platform} not found`);
+
+  if (platform === "leetcode") {
+    try {
+      const liveStats = await syncLeetcodeStats();
+      return res
+        .status(200)
+        .json(new ApiResponse(200, liveStats, `${platform} stats fetched`));
+    } catch (error) {
+      console.error("LeetCode sync failed:", error.message);
+    }
+  }
+
+  if (platform === "geeksforgeeks") {
+    try {
+      const liveStats = await syncGfgStats();
+      return res
+        .status(200)
+        .json(new ApiResponse(200, liveStats, `${platform} stats fetched`));
+    } catch (error) {
+      console.error("GFG sync failed:", error.message);
+    }
+  }
 
   res.status(200).json(new ApiResponse(200, stats[platform], `${platform} stats fetched`));
 });

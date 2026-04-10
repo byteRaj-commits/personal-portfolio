@@ -154,6 +154,49 @@
   gap: 10px;
 }
 
+.stats__breakdown {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.stats__breakdown-row {
+  display: grid;
+  gap: 8px;
+}
+
+.stats__breakdown-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+
+.stats__breakdown-label {
+  color: var(--text-2);
+}
+
+.stats__breakdown-value {
+  color: var(--text-1);
+  font-weight: 700;
+}
+
+.stats__breakdown-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.stats__breakdown-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--stats-accent), color-mix(in srgb, var(--stats-accent) 65%, white));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--stats-accent) 30%, transparent);
+}
+
 .stats__highlight {
   display: flex;
   gap: 10px;

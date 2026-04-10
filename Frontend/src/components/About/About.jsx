@@ -188,9 +188,9 @@ export default function About() {
               </div>
             </motion.div>
             <motion.div variants={fadeUp} className="about__actions">
-              {profile?.resume?.url && (
+              {(profile?.resume?.downloadUrl || profile?.resume?.url) && (
                 <a
-                  href={profile.resume.url}
+                  href={profile?.resume?.downloadUrl || profile?.resume?.url}
                   target="_blank"
                   rel="noreferrer"
                   className="btn btn-primary"

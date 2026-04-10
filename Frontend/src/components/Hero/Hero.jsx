@@ -188,8 +188,8 @@ export default function Hero() {
               <span>View Work</span>
               <ExternalLink size={15} />
             </a>
-            {profile?.resume?.url
-              ? <a href={profile.resume.url} target="_blank" rel="noreferrer" className="btn btn-outline"><Download size={15} /> Resume</a>
+            {profile?.resume?.downloadUrl || profile?.resume?.url
+              ? <a href={profile?.resume?.downloadUrl || profile?.resume?.url} target="_blank" rel="noreferrer" className="btn btn-outline"><Download size={15} /> Resume</a>
               : <a href="#contact" className="btn btn-outline">Get in Touch</a>
             }
           </motion.div>
