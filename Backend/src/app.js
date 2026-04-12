@@ -20,7 +20,23 @@ const app = express();
 // ─── Core Middleware ─────────────────────────────────
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // allow requests with no origin (like Postman)
+      if (!origin) return callback(null, true);
+
+      // allow localhost
+      if (origin.includes("localhost")) {
+        return callback(null, true);
+      }
+
+      // allow all vercel domains
+      if (origin.includes("vercel.app")) {
+        return callback(null, true);
+      }
+
+      // block others
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
